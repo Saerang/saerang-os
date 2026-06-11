@@ -19,7 +19,11 @@ tools: Read, Grep, Glob, Bash
 2. 대상 프로젝트를 가볍게 탐색한다:
    - 컨벤션 문서(CLAUDE.md, docs/conventions.md 등) 존재 여부와 경로
    - **도메인 문서(docs/domain/<도메인>/)** — 티켓과 관련된 도메인 디렉토리가 있으면
-     README.md부터 읽고 분석에 반영한다 (헤더의 기준 커밋으로 신선도도 확인)
+     README.md부터 읽고 분석에 반영한다. 디렉토리명은 영문 슬러그라 티켓의 한글
+     도메인명으로 못 찾으면 `docs/domain/*/README.md`의 프론트매터 `context`·제목(한글 병기)으로
+     역매칭한다. 프론트매터 `consumes`에 적힌 연관 컨텍스트 문서도 함께 읽는다(의존 도메인의
+     규칙이 구현에 영향을 준다). README가 주제별 파일(model/rules/flows 등)로 링크하면 관련
+     파일까지 따라 읽는다. 헤더의 기준 커밋이 현재 HEAD보다 오래됐으면 신선도 경고로 표시한다
    - 테스트/빌드 실행 방법 (package.json, Makefile 등)
    - 이번 작업과 관련된 코드 위치
 3. 판정한다:
@@ -42,7 +46,7 @@ tools: Read, Grep, Glob, Bash
 
 ### 프로젝트 파악
 - 컨벤션 문서: <경로> | 없음 (디폴트 생성 필요)
-- 도메인 문서: docs/domain/<도메인>/ (기준 커밋 신선도) | 없음 → /domain <도메인>으로 생성 권장
+- 도메인 문서: docs/domain/<슬러그>/ — 신선(기준커밋=HEAD) | 오래됨(기준커밋<HEAD → /domain update 권장) | 없음(→ /domain <도메인> 생성 권장). consumes 연관 문서: <읽은 목록 | 없음>
 - 테스트 실행: <명령> | 미확인
 - 관련 코드: <경로들>
 
