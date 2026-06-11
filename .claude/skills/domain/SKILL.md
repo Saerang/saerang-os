@@ -11,8 +11,10 @@ argument-hint: "[rebuild] <도메인 이름...> [프로젝트 경로]"
 **코드에서 확인된 사실만 문서가 된다** — 추측은 사람 검수를 통과해야만 사실로 승격된다.
 
 문서 구조: 도메인당 디렉토리 하나 — 본 문서는 `docs/domain/<도메인>/README.md`,
-분량이 커지면 같은 디렉토리에 주제별 파일(glossary.md, flows.md 등)로 분할한다.
+분량이 커지면 같은 디렉토리에 주제별 파일(model.md, rules.md, flows.md 등)로 분할한다.
 바운디드 컨텍스트를 소유한 repo의 문서가 원본(SSOT)이다.
+모든 문서는 `references/doc-template.md`의 **엄격한 공통 골격 + RAG 작성 규칙**을 따른다 —
+나중에 이 문서로 질의응답(RAG)하기 위해 일관된 형식·자기완결 청크·별칭이 필수다.
 
 ## 인자 / 모드 판별
 
@@ -21,9 +23,10 @@ argument-hint: "[rebuild] <도메인 이름...> [프로젝트 경로]"
 - 토큰 중 **실재하는 디렉터리 경로**가 있으면 → 대상 프로젝트 경로. 없으면 사용자에게
   물어본다 (이 OS 저장소 자신은 대상이 아니다 — 도메인 문서는 대상 프로젝트 repo에 산다)
 - 나머지 토큰이 **도메인 이름**이다. 여러 개면 각각 분석한다 (분석은 병렬, 검수는 순차)
-- 도메인 이름이 없으면 → 대상 프로젝트의 `docs/domain/`에 있는 기존 문서 목록을
-  보여주고, 어떤 도메인을 다룰지(또는 새로 만들지) 물어본다. 사용자가 도메인 구획
-  자체를 모르겠다고 하면 코드 최상위 구조(패키지/모듈 경계)를 훑어 도메인 후보를 제안한다
+- 도메인 이름이 없거나 도메인 구획 자체를 모르면 → **recon 모드**: domain-analyst를 recon으로
+  돌려 도메인 맵 초안(컨텍스트 후보·제안 렌즈·스택·우선순위)을 받아 사용자에게 보여주고,
+  어떤 도메인부터 다룰지·방법론 렌즈를 확정받는다 (모르는 프로젝트의 진입점).
+  기존 문서가 있으면 `docs/domain/` 목록도 함께 보여준다
 - **모드는 문서 존재 여부로 자동 판단한다**:
   - `docs/domain/<도메인>/README.md` 없음 → **bootstrap 모드** (신규 구축)
   - 있음 → **update 모드** (기준 커밋 이후 변경 반영 + 기존 내용 재검증)
@@ -35,10 +38,13 @@ argument-hint: "[rebuild] <도메인 이름...> [프로젝트 경로]"
 1. **도메인 분석 (domain-analyst 서브 에이전트)** — **domain-analyst 서브 에이전트**
    (Agent 도구, subagent_type: `domain-analyst`)에 다음을 전달해 분석을 맡긴다.
    도메인이 여러 개면 병렬로 spawn한다:
-   - 모드 (bootstrap / update), 대상 프로젝트 경로, 도메인 이름
-   - **DDD 방법론 문서 경로** `.claude/skills/domain/references/ddd-method.md` —
-     분석가가 이 방법론(경계 5신호·서브도메인 분류·애그리거트 규칙·컨텍스트 매핑)을 적용하게 함
-   - (선택) 역할 렌즈 backend|frontend|contract — 프론트는 백엔드 SSOT를 링크 참조만
+   - 모드 (recon | bootstrap | update), 대상 프로젝트 경로, 도메인 이름
+   - **레퍼런스 경로** (`.claude/skills/domain/references/` 아래): `extraction-discipline.md`(항상)
+     + `doc-template.md`(bootstrap/update) + `method-<렌즈>.md`(확정 렌즈, 기본 `method-ddd.md`)
+     + `example.md`(형식 본보기)
+   - **방법론 렌즈** ddd|usecase|data-centric — recon 결과로 제안받아 사람이 확정한다.
+     쓰려는 렌즈의 `method-*.md`가 아직 없으면 만들지 말고 `method-ddd.md`로 진행하거나 사용자에게 알린다
+   - 역할 backend|frontend|contract — 프론트는 백엔드 SSOT를 링크 참조만 (재정의 ✗)
    - update 모드면: 기존 문서 디렉토리 경로와 문서 헤더의 **기준 커밋 해시**
      (헤더에 없으면 `git log -1 --format=%H -- docs/domain/<도메인>/`로 대체)
    - "분석 불충분"이 반환되면 사유를 보고하고 종료한다 (도메인이 크면 분할 재요청 안내)
@@ -65,9 +71,9 @@ argument-hint: "[rebuild] <도메인 이름...> [프로젝트 경로]"
      확인을 받는다. 수정 의견이 있으면 반영 후 다시 확인받는다
 
 4. **저장** — 검수 통과본을 대상 프로젝트의 `docs/domain/<도메인-영문-슬러그>/README.md`로
-   저장한다 (디렉토리 없으면 생성). 분량이 큰 섹션은 같은 디렉토리의 주제별 파일로
-   분할하고 README.md에서 링크한다. 문서 헤더의 기준 커밋을 대상 프로젝트의
-   현재 HEAD(`git rev-parse --short HEAD`)로, 최종 갱신일을 오늘 날짜로 기록한다.
+   저장한다 (디렉토리 없으면 생성). doc-template의 frontmatter(context·method·role·subdomain·
+   stack·aliases·base_commit·consumes)를 채우고, 분량이 큰 섹션은 주제별 파일(model/rules/flows.md)로
+   분할해 README.md에서 링크한다. 기준 커밋은 현재 HEAD(`git rev-parse --short HEAD`), 갱신일은 오늘.
 
 5. **커밋 제안** — AskUserQuestion으로 커밋 여부를 물어본다:
    - **예** → 대상 프로젝트에서 `docs/domain-<도메인>` 브랜치를 만들어 커밋한다
