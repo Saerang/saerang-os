@@ -13,7 +13,7 @@ argument-hint: "[메시지 힌트]"
 
 1. **변경사항 파악** — 다음을 병렬로 실행:
    - `git status` — 변경/추가/삭제된 파일 확인
-   - `git diff HEAD` — staged + unstaged 변경 내용 확인
+   - `git diff HEAD` — staged + unstaged 변경 내용 확인 (단, 추적되지 않은 신규 파일은 diff에 나오지 않으므로, `git status`에 뜬 신규 파일은 내용을 직접 읽어 파악한다)
    - `git log --oneline -5` — 최근 커밋 메시지 스타일 참고
 
 2. **변경 내용 분석** — diff를 읽고 무엇이 왜 바뀌었는지 파악한다. 파일 나열이 아니라 변경의 의도와 효과를 요약한다.
